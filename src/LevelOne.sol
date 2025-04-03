@@ -14,8 +14,8 @@ contract LevelOne {
     uint256 public immutable reviewTime = 1 weeks;
     uint256 public sessionEnd;
     uint256 public bursary;
-    mapping(address => bool) private isTeacher;
-    mapping(address => bool) private isStudent;
+    mapping(address => bool) public isTeacher;
+    mapping(address => bool) public isStudent;
     mapping(address => uint256) private studentScore;
     mapping(address => uint256) private reviewCount;
     mapping(address => uint256) private lastReviewTime;
@@ -25,7 +25,7 @@ contract LevelOne {
     event TeacherRemoved(address indexed);
     event Enrolled(address indexed);
     event Expelled(address indexed);
-    event SchoolInSession(uint256 indexed startTime, uint256 indexed endTime, uint256 indexed schoolFees);
+    event SchoolInSession(uint256 indexed startTime, uint256 indexed endTime);
     event ReviewGiven(address indexed student, bool indexed review, uint256 indexed studentScore);
 
     error HH__NotPrincipal();
@@ -35,7 +35,7 @@ contract LevelOne {
     error HH__StudentExists();
 
     modifier onlyPrincipal() {
-        if (msg.sender == principal) {
+        if (msg.sender != principal) {
             revert HH__NotPrincipal();
         }
         _;
@@ -53,8 +53,13 @@ contract LevelOne {
         _;
     }
 
-    constructor(address _principal) {
+    constructor(address _principal, uint256 _schoolFees) {
+        if (_principal == address(0)) {
+            revert HH__NotPrincipal();
+        }
+        require(_schoolFees != 0, "School fees cannot be zero!!!");
         principal = _principal;
+        schoolFees = _schoolFees;
     }
 
     receive() external payable {}
@@ -112,16 +117,11 @@ contract LevelOne {
         isStudent[_student] = false;
     }
 
-    function startSession(uint256 _amount) public onlyPrincipal notYetInSession {
-        if (_amount == 0) {
-            revert HH__ZeroAddress();
-        }
+    function startSession() public onlyPrincipal notYetInSession {
         sessionEnd = block.timestamp + 4 weeks;
         inSession = true;
 
-        schoolFees = _amount;
-
-        emit SchoolInSession(block.timestamp, sessionEnd, schoolFees);
+        emit SchoolInSession(block.timestamp, sessionEnd);
     }
 
     function giveReview(address _student, bool review) public onlyTeacher {
