@@ -9,23 +9,17 @@ pragma solidity 0.8.26;
  * @notice Contract for the Hawk High School
  */
 contract LevelOne {
-    error HH__NotPrincipal();
-    error HH__NotTeacher();
-    error HH__ZeroAddress();
-    error HH__TeacherExists();
-    error HH__StudentExists();
-
     address principal;
+    uint256 public schoolFees;
+    uint256 public immutable reviewTime = 1 weeks;
+    uint256 public sessionEnd;
+    uint256 public bursary;
     mapping(address => bool) private isTeacher;
     mapping(address => bool) private isStudent;
     mapping(address => uint256) private studentScore;
     mapping(address => uint256) private reviewCount;
     mapping(address => uint256) private lastReviewTime;
-    uint256 public schoolFees;
-    uint256 public immutable reviewTime = 1 weeks;
     bool inSession;
-    uint256 public sessionEnd;
-    uint256 public bursary;
 
     event TeacherAdded(address indexed);
     event TeacherRemoved(address indexed);
@@ -34,9 +28,11 @@ contract LevelOne {
     event SchoolInSession(uint256 indexed startTime, uint256 indexed endTime, uint256 indexed schoolFees);
     event ReviewGiven(address indexed student, bool indexed review, uint256 indexed studentScore);
 
-    constructor(address _principal) {
-        principal = _principal;
-    }
+    error HH__NotPrincipal();
+    error HH__NotTeacher();
+    error HH__ZeroAddress();
+    error HH__TeacherExists();
+    error HH__StudentExists();
 
     modifier onlyPrincipal() {
         if (msg.sender == principal) {
@@ -55,6 +51,27 @@ contract LevelOne {
     modifier notYetInSession() {
         require(!inSession, "Hawk High is already in session!!!");
         _;
+    }
+
+    constructor(address _principal) {
+        principal = _principal;
+    }
+
+    receive() external payable {}
+
+    function enroll() external payable notYetInSession {
+        require(!isTeacher[msg.sender] && msg.sender != principal);
+        require(msg.value == schoolFees, "Hawk High fees not paid!!!");
+
+        if (isStudent[msg.sender]) {
+            revert HH__StudentExists();
+        }
+
+        isStudent[msg.sender] = true;
+        studentScore[msg.sender] = 100;
+        bursary += msg.value;
+
+        emit Enrolled(msg.sender);
     }
 
     function addTeacher(address _teacher) public onlyPrincipal notYetInSession {
@@ -83,21 +100,6 @@ contract LevelOne {
         isTeacher[_teacher] = false;
 
         emit TeacherRemoved(_teacher);
-    }
-
-    function enroll() external payable notYetInSession {
-        require(!isTeacher[msg.sender] && msg.sender != principal);
-        require(msg.value == schoolFees, "Hawk High fees not paid!!!");
-
-        if (isStudent[msg.sender]) {
-            revert HH__StudentExists();
-        }
-
-        isStudent[msg.sender] = true;
-        studentScore[msg.sender] = 100;
-        bursary += msg.value;
-
-        emit Enrolled(msg.sender);
     }
 
     function expell(address _student) public onlyPrincipal {
@@ -137,6 +139,4 @@ contract LevelOne {
 
         emit ReviewGiven(_student, review, studentScore[_student]);
     }
-
-    receive() external payable {}
 }
