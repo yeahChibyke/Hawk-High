@@ -1,0 +1,23 @@
+contract Level2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    struct Student {
+        string name;
+        bool exists;
+    }
+
+    mapping(address => Student) public students;
+
+    event StudentEnrolled(address indexed student, string name);
+
+    function initialize() public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    function enrollStudent(address student, string memory name) external onlyOwner {
+        require(!students[student].exists, "Already enrolled");
+        students[student] = Student(name, true);
+        emit StudentEnrolled(student, name);
+    }
+}
