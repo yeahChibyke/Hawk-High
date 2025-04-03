@@ -68,5 +68,56 @@ contract TestLevelOne is Test {
         levelOne.enroll{value: schoolFees}();
 
         assert(levelOne.isStudent(clara) == true);
+        assert(levelOne.bursary() == 1 ether);
+    }
+
+    modifier sessionStarted() {
+        vm.prank(clara);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(dan);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(eli);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(fin);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(grey);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(harriet);
+        levelOne.enroll{value: schoolFees}();
+
+        vm.prank(principal);
+        levelOne.startSession();
+        _;
+    }
+
+    function test_confirm_no_enroll_when_in_session() public sessionStarted {
+        address student = makeAddr("student");
+        vm.deal(student, 1 ether);
+
+        vm.prank(student);
+        vm.expectRevert("Hawk High is already in session!!!");
+        levelOne.enroll{value: 1 ether}();
+    }
+
+    function test_confirm_no_add_teacher_when_in_session() public sessionStarted {
+        address teacher = makeAddr("teacher");
+
+        vm.prank(principal);
+        vm.expectRevert("Hawk High is already in session!!!");
+        levelOne.addTeacher(teacher);
+    }
+
+    function test_confirm_no_expel_when_not_in_session() public {
+        vm.prank(grey);
+        levelOne.enroll{value: 1 ether}();
+
+        vm.prank(principal);
+        vm.expectRevert();
+        levelOne.expel(grey);
     }
 }

@@ -107,7 +107,10 @@ contract LevelOne {
         emit TeacherRemoved(_teacher);
     }
 
-    function expell(address _student) public onlyPrincipal {
+    function expel(address _student) public onlyPrincipal {
+        if (inSession == false) {
+            revert();
+        }
         if (_student == address(0)) {
             revert HH__ZeroAddress();
         }
@@ -115,6 +118,8 @@ contract LevelOne {
         require(isStudent[_student], "Student does not exist!!!");
 
         isStudent[_student] = false;
+
+        emit Expelled(_student);
     }
 
     function startSession() public onlyPrincipal notYetInSession {
