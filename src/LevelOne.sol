@@ -16,7 +16,7 @@ contract LevelOne {
     uint256 public bursary;
     mapping(address => bool) public isTeacher;
     mapping(address => bool) public isStudent;
-    mapping(address => uint256) private studentScore;
+    mapping(address => uint256) public studentScore;
     mapping(address => uint256) private reviewCount;
     mapping(address => uint256) private lastReviewTime;
     bool inSession;
@@ -33,6 +33,12 @@ contract LevelOne {
     error HH__ZeroAddress();
     error HH__TeacherExists();
     error HH__StudentExists();
+    error HH__TeacherDoesNotExist();
+    error HH__StudentDoesNotExist();
+    error HH__AlreadyInSession();
+    error HH__ZeroValue();
+    error HH__HawkHighFeesNotPaid();
+    error HH__NotAllowed();
 
     modifier onlyPrincipal() {
         if (msg.sender != principal) {
@@ -49,15 +55,19 @@ contract LevelOne {
     }
 
     modifier notYetInSession() {
-        require(!inSession, "Hawk High is already in session!!!");
+        if (inSession == true) {
+            revert HH__AlreadyInSession();
+        }
         _;
     }
 
     constructor(address _principal, uint256 _schoolFees) {
         if (_principal == address(0)) {
-            revert HH__NotPrincipal();
+            revert HH__ZeroAddress();
         }
-        require(_schoolFees != 0, "School fees cannot be zero!!!");
+        if (_schoolFees == 0) {
+            revert HH__ZeroValue();
+        }
         principal = _principal;
         schoolFees = _schoolFees;
     }
@@ -65,8 +75,12 @@ contract LevelOne {
     receive() external payable {}
 
     function enroll() external payable notYetInSession {
-        require(!isTeacher[msg.sender] && msg.sender != principal);
-        require(msg.value == schoolFees, "Hawk High fees not paid!!!");
+        if (isTeacher[msg.sender] || msg.sender == principal) {
+            revert HH__NotAllowed();
+        }
+        if (msg.value != schoolFees) {
+            revert HH__HawkHighFeesNotPaid();
+        }
 
         if (isStudent[msg.sender]) {
             revert HH__StudentExists();
@@ -88,7 +102,9 @@ contract LevelOne {
             revert HH__TeacherExists();
         }
 
-        require(!isStudent[_teacher], "Cannot be a teacher and a student!!!");
+        if (isStudent[_teacher]) {
+            revert HH__NotAllowed();
+        }
 
         isTeacher[_teacher] = true;
 
@@ -100,7 +116,9 @@ contract LevelOne {
             revert HH__ZeroAddress();
         }
 
-        require(isTeacher[_teacher], "Teacher does not exist!!!");
+        if (!isTeacher[_teacher]) {
+            revert HH__TeacherDoesNotExist();
+        }
 
         isTeacher[_teacher] = false;
 
@@ -115,7 +133,9 @@ contract LevelOne {
             revert HH__ZeroAddress();
         }
 
-        require(isStudent[_student], "Student does not exist!!!");
+        if (!isStudent[_student]) {
+            revert HH__StudentDoesNotExist();
+        }
 
         isStudent[_student] = false;
 
@@ -130,8 +150,10 @@ contract LevelOne {
     }
 
     function giveReview(address _student, bool review) public onlyTeacher {
+        if (!isStudent[_student]) {
+            revert HH__StudentDoesNotExist();
+        }
         require(reviewCount[_student] < 5, "Student review count exceeded!!!");
-        require(isStudent[_student], "Student does not exist!!!");
         require(block.timestamp >= lastReviewTime[_student] + reviewTime, "Reviews can only be given once per week");
 
         // where `false` is a bad review and true is a good review

@@ -68,6 +68,7 @@ contract TestLevelOne is Test {
         levelOne.enroll{value: schoolFees}();
 
         assert(levelOne.isStudent(clara) == true);
+        assert(levelOne.studentScore(clara) == 100);
         assert(levelOne.bursary() == 1 ether);
     }
 
@@ -100,7 +101,7 @@ contract TestLevelOne is Test {
         vm.deal(student, 1 ether);
 
         vm.prank(student);
-        vm.expectRevert("Hawk High is already in session!!!");
+        vm.expectRevert(LevelOne.HH__AlreadyInSession.selector);
         levelOne.enroll{value: 1 ether}();
     }
 
@@ -108,7 +109,7 @@ contract TestLevelOne is Test {
         address teacher = makeAddr("teacher");
 
         vm.prank(principal);
-        vm.expectRevert("Hawk High is already in session!!!");
+        vm.expectRevert(LevelOne.HH__AlreadyInSession.selector);
         levelOne.addTeacher(teacher);
     }
 
@@ -119,5 +120,14 @@ contract TestLevelOne is Test {
         vm.prank(principal);
         vm.expectRevert();
         levelOne.expel(grey);
+    }
+
+    function test_confirm_can_give_review() public sessionStarted {
+        vm.warp(1 weeks);
+
+        vm.prank(alice);
+        levelOne.giveReview(fin, false);
+
+        assert(levelOne.studentScore(fin) == 90);
     }
 }
