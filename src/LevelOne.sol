@@ -256,7 +256,6 @@ contract LevelOne is Initializable, UUPSUpgradeable {
         }
 
         uint256 totalTeachers = listOfTeachers.length;
-        uint256 totalStudents = listOfStudents.length;
 
         uint256 payPerTeacher = (bursary * TEACHER_WAGE) / PRECISION;
         uint256 principalPay = (bursary * PRINCIPAL_WAGE) / PRECISION;
@@ -270,7 +269,17 @@ contract LevelOne is Initializable, UUPSUpgradeable {
 
         (bool paid,) = payable(principal).call{value: principalPay}("");
         require(paid, "Principal payment failed!!!");
+
+        bytes memory data = abi.encodeWithSignature(
+            "graduatedState(address[], address[], uint256)", listOfStudents, listOfTeachers, bursaryBalance
+        );
+
+        upgradeToAndCall(_levelTwo, data);
+
+        emit Graduated(_levelTwo);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override {}
+    // function upgradeToAndCall(address _levelTwo) public onlyPrincipal {}
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyPrincipal {}
 }
