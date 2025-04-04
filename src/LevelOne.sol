@@ -17,14 +17,15 @@ pragma solidity 0.8.26;
 
 */
 
-// import "@openzeppelin/contracts/access/Ownable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Hawk High First Flight
  * @author Chukwubuike Victory Chime @yeahChibyke
  * @notice Contract for the Hawk High School
  */
-contract LevelOne {
+contract LevelOne is Initializable, UUPSUpgradeable {
     ////////////////////////////////
     /////                      /////
     /////      VARIABLES       /////
@@ -45,6 +46,10 @@ contract LevelOne {
     address[] public listOfStudents;
     address[] public listOfTeachers;
 
+    uint256 public constant TEACHER_WAGE = 35; // 35%
+    uint256 public constant PRINCIPAL_WAGE = 5; // 5%
+    uint256 public constant PRECISION = 100;
+
     ////////////////////////////////
     /////                      /////
     /////        EVENTS        /////
@@ -56,6 +61,7 @@ contract LevelOne {
     event Expelled(address indexed);
     event SchoolInSession(uint256 indexed startTime, uint256 indexed endTime);
     event ReviewGiven(address indexed student, bool indexed review, uint256 indexed studentScore);
+    event Graduated(address indexed levelTwo);
 
     ////////////////////////////////
     /////                      /////
@@ -102,10 +108,10 @@ contract LevelOne {
 
     ////////////////////////////////
     /////                      /////
-    /////     CONSTRUCTOR      /////
+    /////     INITIALIZER      /////
     /////                      /////
     ////////////////////////////////
-    constructor(address _principal, uint256 _schoolFees) {
+    function initialize(address _principal, uint256 _schoolFees) public initializer {
         if (_principal == address(0)) {
             revert HH__ZeroAddress();
         }
@@ -114,6 +120,8 @@ contract LevelOne {
         }
         principal = _principal;
         schoolFees = _schoolFees;
+
+        __UUPSUpgradeable_init();
     }
 
     ////////////////////////////////
@@ -241,4 +249,28 @@ contract LevelOne {
 
         emit ReviewGiven(_student, review, studentScore[_student]);
     }
+
+    function graduate(address _levelTwo) external onlyPrincipal {
+        if (_levelTwo == address(0)) {
+            revert HH__ZeroAddress();
+        }
+
+        uint256 totalTeachers = listOfTeachers.length;
+        uint256 totalStudents = listOfStudents.length;
+
+        uint256 payPerTeacher = (bursary * TEACHER_WAGE) / PRECISION;
+        uint256 principalPay = (bursary * PRINCIPAL_WAGE) / PRECISION;
+        uint256 totalTeacherPay = payPerTeacher * totalTeachers;
+        uint256 bursaryBalance = bursary - (totalTeacherPay + principalPay);
+
+        for (uint256 n = 0; n < totalTeachers; n++) {
+            (bool success,) = payable(listOfTeachers[n]).call{value: payPerTeacher}("");
+            require(success, "Teacher payments failed!!!");
+        }
+
+        (bool paid,) = payable(principal).call{value: principalPay}("");
+        require(paid, "Principal payment failed!!!");
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override {}
 }
