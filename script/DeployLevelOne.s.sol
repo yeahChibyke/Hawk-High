@@ -12,8 +12,11 @@ contract DeployLevelOne is Script {
     }
 
     function deployLevelOne() public returns (address) {
+        vm.startBroadcast();
         LevelOne levelOne = new LevelOne();
         ERC1967Proxy proxy = new ERC1967Proxy(address(levelOne), "");
+        vm.stopBroadcast();
+
         return address(proxy);
     }
 }
