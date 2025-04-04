@@ -1,3 +1,3 @@
-[](Hawk_High.png)
+![](Hawk_High.png)
 
 ## Hawk High
