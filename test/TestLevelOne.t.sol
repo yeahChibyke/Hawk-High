@@ -92,7 +92,7 @@ contract TestLevelOne is Test {
         levelOne.enroll{value: schoolFees}();
 
         vm.prank(principal);
-        levelOne.startSession();
+        levelOne.startSession(70);
         _;
     }
 
