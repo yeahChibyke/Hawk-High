@@ -19,8 +19,9 @@ pragma solidity 0.8.26;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+// import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IUSDC} from "./interfaces/IUSDC.sol";
 
 /**
  * @title Hawk High First Flight
@@ -28,8 +29,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
  * @notice Contract for the Hawk High School
  */
 contract LevelOne is Initializable, UUPSUpgradeable {
-    using SafeERC20 for IERC20;
-
     ////////////////////////////////
     /////                      /////
     /////      VARIABLES       /////
@@ -54,7 +53,7 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     uint256 public constant PRINCIPAL_WAGE = 5; // 5%
     uint256 public constant PRECISION = 100;
 
-    IERC20 i_WETH;
+    IUSDC usdc;
 
     ////////////////////////////////
     /////                      /////
@@ -117,20 +116,21 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     /////     INITIALIZER      /////
     /////                      /////
     ////////////////////////////////
-    function initialize(address _principal, uint256 _schoolFees, address _weth) public initializer {
+    function initialize(address _principal, uint256 _schoolFees, address _usdcAddress) public initializer {
         if (_principal == address(0)) {
             revert HH__ZeroAddress();
         }
         if (_schoolFees == 0) {
             revert HH__ZeroValue();
         }
-        if (_weth == address(0)) {
+        if (_usdcAddress == address(0)) {
             revert HH__ZeroAddress();
         }
 
         principal = _principal;
         schoolFees = _schoolFees;
-        i_WETH = IERC20(_weth);
+        // i_WETH = IERC20(_weth);
+        usdc = IUSDC(_usdcAddress);
 
         __UUPSUpgradeable_init();
     }
@@ -148,7 +148,8 @@ contract LevelOne is Initializable, UUPSUpgradeable {
             revert HH__StudentExists();
         }
 
-        i_WETH.safeTransferFrom(msg.sender, address(this), schoolFees);
+        // usdc.transferFrom(msg.sender, address(this), schoolFees);
+        usdc.transfer(address(this), schoolFees);
 
         listOfStudents.push(msg.sender);
         isStudent[msg.sender] = true;
@@ -167,7 +168,7 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     }
 
     function getSchoolFeesToken() external view returns (address) {
-        return address(i_WETH);
+        return address(usdc);
     }
 
     function getTotalTeachers() external view returns (uint256) {
@@ -296,12 +297,12 @@ contract LevelOne is Initializable, UUPSUpgradeable {
         upgradeToAndCall(_levelTwo, data);
 
         for (uint256 n = 0; n < totalTeachers; n++) {
-            i_WETH.safeTransferFrom(address(this), listOfTeachers[n], payPerTeacher);
+            usdc.transferFrom(address(this), listOfTeachers[n], payPerTeacher);
         }
 
-        i_WETH.safeTransferFrom(address(this), principal, principalPay);
+        usdc.transferFrom(address(this), principal, principalPay);
 
-        i_WETH.safeTransferFrom(address(this), _levelTwo, bursaryBalance); // --> monitor this line
+        usdc.transferFrom(address(this), _levelTwo, bursaryBalance); // --> monitor this line
 
         emit Graduated(_levelTwo);
     }

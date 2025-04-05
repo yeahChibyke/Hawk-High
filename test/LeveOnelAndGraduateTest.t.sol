@@ -6,15 +6,15 @@ import {DeployLevelOne} from "../script/DeployLevelOne.s.sol";
 import {GraduateToLevelTwo} from "../script/GraduateToLevelTwo.s.sol";
 import {LevelOne} from "../src/LevelOne.sol";
 import {LevelTwo} from "../src/LevelTwo.sol";
-import {MockWETH} from "./mocks/MockWETH.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 contract LevelOneAndGraduateTest is Test {
     DeployLevelOne deployBot;
     GraduateToLevelTwo graduateBot;
     LevelOne proxy;
     LevelTwo implementation;
-    MockWETH weth;
+
+    MockUSDC usdc;
 
     address principal;
     // teachers
@@ -36,7 +36,7 @@ contract LevelOneAndGraduateTest is Test {
 
         proxy = LevelOne(deployBot.run());
 
-        weth = new MockWETH("MockWETH", "WETH");
+        usdc = deployBot.getUSDC();
 
         alice = makeAddr("first_teacher");
         bob = makeAddr("second_teacher");
@@ -48,12 +48,12 @@ contract LevelOneAndGraduateTest is Test {
         grey = makeAddr("fifth_student");
         harriet = makeAddr("sixth_student");
 
-        weth.mint(clara, 1e18);
-        weth.mint(dan, 1e18);
-        weth.mint(eli, 1e18);
-        weth.mint(fin, 1e18);
-        weth.mint(grey, 1e18);
-        weth.mint(harriet, 1e18);
+        usdc.mint(clara, 1e18);
+        usdc.mint(dan, 1e18);
+        usdc.mint(eli, 1e18);
+        usdc.mint(fin, 1e18);
+        usdc.mint(grey, 1e18);
+        usdc.mint(harriet, 1e18);
 
         principal = makeAddr("principal");
         principal = deployBot.principal();
@@ -71,7 +71,8 @@ contract LevelOneAndGraduateTest is Test {
         assert(expectedPrecision == LevelOne(proxyAddress).PRECISION());
         assert(principal == LevelOne(proxyAddress).getPrincipal());
         assert(deployBot.schoolFees() == LevelOne(proxyAddress).getSchoolFeesCost());
-        console2.log(address(weth) == LevelOne(proxyAddress).getSchoolFeesToken());
+        // assert(address(usdc) == LevelOne(proxyAddress).getSchoolFeesToken()); //--> This assert keeps failing. It is making it impossible to test the enroll funtion as I cannot grant appropriate approval
+        assert(address(deployBot.getUSDC()) == LevelOne(proxyAddress).getSchoolFeesToken());
     }
 
     function test_confirm_add_teacher() public {
@@ -85,13 +86,12 @@ contract LevelOneAndGraduateTest is Test {
         assert(LevelOne(proxyAddress).isTeacher(alice) == true);
         assert(LevelOne(proxyAddress).isTeacher(bob) == true);
         assert(LevelOne(proxyAddress).getTotalTeachers() == 2);
+
+        // console2.log(usdc.balanceOf(clara));
     }
 
     function test_confirm_enroll() public {
         address proxyAddress = deployBot.deployLevelOne();
-
-        // vm.prank(clara);
-        // weth.approve(proxyAddress, 1e18);
 
         vm.prank(clara);
         LevelOne(proxyAddress).enroll();

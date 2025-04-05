@@ -4,13 +4,12 @@ pragma solidity 0.8.26;
 import {Script} from "forge-std/Script.sol";
 import {LevelOne} from "../src/LevelOne.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockWETH} from "../test/mocks/MockWETH.sol";
+import {MockUSDC} from "../test/mocks/MockUSDC.sol";
 
 contract DeployLevelOne is Script {
     address public principal = makeAddr("principal");
-    uint256 public schoolFees = 1e18; // 1 WETH
-    MockWETH public weth;
+    uint256 public schoolFees = 1e18;
+    MockUSDC usdc;
 
     function run() external returns (address proxy) {
         proxy = deployLevelOne();
@@ -18,14 +17,18 @@ contract DeployLevelOne is Script {
     }
 
     function deployLevelOne() public returns (address) {
-        weth = new MockWETH("MockWETH", "WETH");
+        usdc = new MockUSDC();
 
         vm.startBroadcast();
         LevelOne levelOne = new LevelOne();
         ERC1967Proxy proxy = new ERC1967Proxy(address(levelOne), "");
-        LevelOne(address(proxy)).initialize(principal, schoolFees, address(weth));
+        LevelOne(address(proxy)).initialize(principal, schoolFees, address(usdc));
         vm.stopBroadcast();
 
         return address(proxy);
+    }
+
+    function getUSDC() public view returns (MockUSDC) {
+        return usdc;
     }
 }
