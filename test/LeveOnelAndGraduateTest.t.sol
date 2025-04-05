@@ -46,6 +46,6 @@ contract LevelOneAndGraduateTest is Test {
 
         uint256 expected = 35;
 
-        // assert(expected == LevelOne(proxyAddress).TEACHER_WAGE()); // payable stuff is kicking my ass. Might implement token payment instead
+        assert(expected == LevelOne(proxyAddress).TEACHER_WAGE());
     }
 }

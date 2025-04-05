@@ -54,7 +54,7 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     uint256 public constant PRINCIPAL_WAGE = 5; // 5%
     uint256 public constant PRECISION = 100;
 
-    IERC20 i_WETH;
+    IERC20 public i_WETH;
 
     ////////////////////////////////
     /////                      /////
