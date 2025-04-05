@@ -37,7 +37,7 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     ////////////////////////////////
     address principal;
     bool inSession;
-    uint256 public schoolFees;
+    uint256 schoolFees;
     uint256 public immutable reviewTime = 1 weeks;
     uint256 public sessionEnd;
     uint256 public bursary;
@@ -54,7 +54,7 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     uint256 public constant PRINCIPAL_WAGE = 5; // 5%
     uint256 public constant PRECISION = 100;
 
-    IERC20 public i_WETH;
+    IERC20 i_WETH;
 
     ////////////////////////////////
     /////                      /////
@@ -156,6 +156,26 @@ contract LevelOne is Initializable, UUPSUpgradeable {
         bursary += schoolFees;
 
         emit Enrolled(msg.sender);
+    }
+
+    function getPrincipal() external view returns (address) {
+        return principal;
+    }
+
+    function getSchoolFeesCost() external view returns (uint256) {
+        return schoolFees;
+    }
+
+    function getSchoolFeesToken() external view returns (address) {
+        return address(i_WETH);
+    }
+
+    function getTotalTeachers() external view returns (uint256) {
+        return listOfTeachers.length;
+    }
+
+    function getTotalStudents() external view returns (uint256) {
+        return listOfStudents.length;
     }
 
     ////////////////////////////////

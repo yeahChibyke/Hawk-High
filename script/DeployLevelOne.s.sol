@@ -8,9 +8,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockWETH} from "../test/mocks/MockWETH.sol";
 
 contract DeployLevelOne is Script {
-    address principal = makeAddr("principal");
-    MockWETH weth;
-    uint256 schoolFees = 1e18; // 1 WETH
+    address public principal = makeAddr("principal");
+    uint256 public schoolFees = 1e18; // 1 WETH
+    MockWETH public weth;
 
     function run() external returns (address proxy) {
         proxy = deployLevelOne();

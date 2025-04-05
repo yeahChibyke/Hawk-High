@@ -6,24 +6,27 @@ import {DeployLevelOne} from "../script/DeployLevelOne.s.sol";
 import {GraduateToLevelTwo} from "../script/GraduateToLevelTwo.s.sol";
 import {LevelOne} from "../src/LevelOne.sol";
 import {LevelTwo} from "../src/LevelTwo.sol";
+import {MockWETH} from "./mocks/MockWETH.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract LevelOneAndGraduateTest is Test {
     DeployLevelOne deployBot;
     GraduateToLevelTwo graduateBot;
     LevelOne proxy;
     LevelTwo implementation;
+    MockWETH weth;
 
-    address principal = address(0x1);
+    address principal;
     // teachers
-    address alice = address(0x2);
-    address bob = address(0x3);
+    address alice;
+    address bob;
     // students
-    address clara = address(0x4);
-    address dan = address(0x5);
-    address eli = address(0x6);
-    address fin = address(0x7);
-    address grey = address(0x8);
-    address harriet = address(0x9);
+    address clara;
+    address dan;
+    address eli;
+    address fin;
+    address grey;
+    address harriet;
 
     uint256 schoolFees = 1 ether;
 
@@ -31,21 +34,66 @@ contract LevelOneAndGraduateTest is Test {
         deployBot = new DeployLevelOne();
         graduateBot = new GraduateToLevelTwo();
 
-        proxy = LevelOne(payable(deployBot.run()));
+        proxy = LevelOne(deployBot.run());
 
-        vm.deal(clara, 1 ether);
-        vm.deal(dan, 1 ether);
-        vm.deal(eli, 1 ether);
-        vm.deal(fin, 1 ether);
-        vm.deal(grey, 1 ether);
-        vm.deal(harriet, 1 ether);
+        weth = new MockWETH("MockWETH", "WETH");
+
+        alice = makeAddr("first_teacher");
+        bob = makeAddr("second_teacher");
+
+        clara = makeAddr("first_student");
+        dan = makeAddr("second_student");
+        eli = makeAddr("third_student");
+        fin = makeAddr("fourth_student");
+        grey = makeAddr("fifth_student");
+        harriet = makeAddr("sixth_student");
+
+        weth.mint(clara, 1e18);
+        weth.mint(dan, 1e18);
+        weth.mint(eli, 1e18);
+        weth.mint(fin, 1e18);
+        weth.mint(grey, 1e18);
+        weth.mint(harriet, 1e18);
+
+        principal = makeAddr("principal");
+        principal = deployBot.principal();
     }
 
     function test_confirm_deployment_is_level_one() public {
         address proxyAddress = deployBot.deployLevelOne();
 
-        uint256 expected = 35;
+        uint256 expectedTeacherWage = 35;
+        uint256 expectedPrincipalWage = 5;
+        uint256 expectedPrecision = 100;
 
-        assert(expected == LevelOne(proxyAddress).TEACHER_WAGE());
+        assert(expectedTeacherWage == LevelOne(proxyAddress).TEACHER_WAGE());
+        assert(expectedPrincipalWage == LevelOne(proxyAddress).PRINCIPAL_WAGE());
+        assert(expectedPrecision == LevelOne(proxyAddress).PRECISION());
+        assert(principal == LevelOne(proxyAddress).getPrincipal());
+        assert(deployBot.schoolFees() == LevelOne(proxyAddress).getSchoolFeesCost());
+        console2.log(address(weth) == LevelOne(proxyAddress).getSchoolFeesToken());
+    }
+
+    function test_confirm_add_teacher() public {
+        address proxyAddress = deployBot.deployLevelOne();
+
+        vm.startPrank(principal);
+        LevelOne(proxyAddress).addTeacher(alice);
+        LevelOne(proxyAddress).addTeacher(bob);
+        vm.stopPrank();
+
+        assert(LevelOne(proxyAddress).isTeacher(alice) == true);
+        assert(LevelOne(proxyAddress).isTeacher(bob) == true);
+        assert(LevelOne(proxyAddress).getTotalTeachers() == 2);
+    }
+
+    function test_confirm_enroll() public {
+        address proxyAddress = deployBot.deployLevelOne();
+
+        // vm.prank(clara);
+        // weth.approve(proxyAddress, 1e18);
+
+        vm.prank(clara);
+        LevelOne(proxyAddress).enroll();
     }
 }
