@@ -19,7 +19,7 @@ contract GraduateToLevelTwo is Script {
         return proxy;
     }
 
-    function graduateToLevelTwo(address _proxyAddress, address _levelTwo) public returns(address) {
+    function graduateToLevelTwo(address _proxyAddress, address _levelTwo) public returns (address) {
         vm.startBroadcast();
         LevelOne proxy = LevelOne(payable(_proxyAddress));
         proxy.upgradeToAndCall(address(_levelTwo), "");

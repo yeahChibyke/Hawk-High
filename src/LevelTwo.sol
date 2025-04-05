@@ -37,6 +37,7 @@ contract LevelTwo is LevelOne {
     }
 
     function getNewBursary() external view returns (uint256) {
+        // --> run an assert to verify that i_WETH.balanceOf(address(this)) == newBursary
         return newBursary;
     }
 }

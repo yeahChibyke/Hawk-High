@@ -19,6 +19,8 @@ pragma solidity 0.8.26;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title Hawk High First Flight
@@ -26,6 +28,8 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
  * @notice Contract for the Hawk High School
  */
 contract LevelOne is Initializable, UUPSUpgradeable {
+    using SafeERC20 for IERC20;
+
     ////////////////////////////////
     /////                      /////
     /////      VARIABLES       /////
@@ -49,6 +53,8 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     uint256 public constant TEACHER_WAGE = 35; // 35%
     uint256 public constant PRINCIPAL_WAGE = 5; // 5%
     uint256 public constant PRECISION = 100;
+
+    IERC20 i_WETH;
 
     ////////////////////////////////
     /////                      /////
@@ -111,15 +117,20 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     /////     INITIALIZER      /////
     /////                      /////
     ////////////////////////////////
-    function initialize(address _principal, uint256 _schoolFees) public initializer {
+    function initialize(address _principal, uint256 _schoolFees, address _weth) public initializer {
         if (_principal == address(0)) {
             revert HH__ZeroAddress();
         }
         if (_schoolFees == 0) {
             revert HH__ZeroValue();
         }
+        if (_weth == address(0)) {
+            revert HH__ZeroAddress();
+        }
+
         principal = _principal;
         schoolFees = _schoolFees;
+        i_WETH = IERC20(_weth);
 
         __UUPSUpgradeable_init();
     }
@@ -129,24 +140,20 @@ contract LevelOne is Initializable, UUPSUpgradeable {
     /////  EXTERNAL FUNCTIONS  /////
     /////                      /////
     ////////////////////////////////
-    receive() external payable {}
-
-    function enroll() external payable notYetInSession {
+    function enroll() external notYetInSession {
         if (isTeacher[msg.sender] || msg.sender == principal) {
             revert HH__NotAllowed();
         }
-        if (msg.value != schoolFees) {
-            revert HH__HawkHighFeesNotPaid();
-        }
-
         if (isStudent[msg.sender]) {
             revert HH__StudentExists();
         }
 
+        i_WETH.safeTransferFrom(msg.sender, address(this), schoolFees);
+
         listOfStudents.push(msg.sender);
         isStudent[msg.sender] = true;
         studentScore[msg.sender] = 100;
-        bursary += msg.value;
+        bursary += schoolFees;
 
         emit Enrolled(msg.sender);
     }
@@ -262,19 +269,19 @@ contract LevelOne is Initializable, UUPSUpgradeable {
         uint256 totalTeacherPay = payPerTeacher * totalTeachers;
         uint256 bursaryBalance = bursary - (totalTeacherPay + principalPay);
 
-        for (uint256 n = 0; n < totalTeachers; n++) {
-            (bool success,) = payable(listOfTeachers[n]).call{value: payPerTeacher}("");
-            require(success, "Teacher payments failed!!!");
-        }
-
-        (bool paid,) = payable(principal).call{value: principalPay}("");
-        require(paid, "Principal payment failed!!!");
-
         bytes memory data = abi.encodeWithSignature(
             "graduatedState(address[], address[], uint256)", listOfStudents, listOfTeachers, bursaryBalance
         );
 
         upgradeToAndCall(_levelTwo, data);
+
+        for (uint256 n = 0; n < totalTeachers; n++) {
+            i_WETH.safeTransferFrom(address(this), listOfTeachers[n], payPerTeacher);
+        }
+
+        i_WETH.safeTransferFrom(address(this), principal, principalPay);
+
+        i_WETH.safeTransferFrom(address(this), _levelTwo, bursaryBalance); // --> monitor this line
 
         emit Graduated(_levelTwo);
     }
